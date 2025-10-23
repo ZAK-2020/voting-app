@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js"
-  },
+  "start": "node server.js",
+  "build": "cd ../frontend && yarn build"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
