@@ -38,17 +38,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// ========== SERVE REACT BUILD IN PRODUCTION (CRITICAL) ==========
+// ========== SERVE REACT BUILD IN PRODUCTION ==========
 if (process.env.NODE_ENV === "production") {
-  // Serve static files from React build
+  // Serve static React files
   app.use(express.static(path.join(__dirname, "../frontend/build")));
 
-  // Catch-all: send index.html for any non-API route
-  app.get("*", (req, res, next) => {
-    // Let API routes handle /api/* first
-    if (req.path.startsWith("/api")) {
-      return next();
-    }
+  // Catch-all route (except API routes)
+  app.get(/^(?!\/api).*/, (req, res) => {
     res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
   });
 }
