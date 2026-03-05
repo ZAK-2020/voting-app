@@ -1,44 +1,49 @@
-import React,{useState} from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const RegisterPage = ({login,showNotification}) => {
+const RegisterPage = ({ login, showNotification }) => {
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
   });
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData({ ...formData, [name]: value });
   };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
-    try{
-      const response = await fetch(
-        `${process.env.REACT_APP_API}/api/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json", // optional but recommended
-          },
-          body : JSON.stringify(formData)
-        }
-      );
-      if(!response.ok) throw new Error("Registration failed");
-      const {token,user} = await response.json();
-      login(token,user);
-      showNotification("Registration Successful","success");
+
+    try {
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) throw new Error("Registration failed");
+
+      const { token, user } = await response.json();
+
+      login(token, user);
+      showNotification("Registration Successful", "success");
       navigate("/");
-    }catch (error){
-     showNotification(error?.message,"error")
+    } catch (error) {
+      showNotification(error?.message, "error");
     }
   };
+
   return (
     <div className="login-container">
       <h2>Register</h2>
-      <form action="" onSubmit={handleSubmit}>
-       
+
+      <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label>Username:</label>
           <input
@@ -49,6 +54,7 @@ const RegisterPage = ({login,showNotification}) => {
             required
           />
         </div>
+
         <div className="form-group">
           <label>Email:</label>
           <input
@@ -59,6 +65,7 @@ const RegisterPage = ({login,showNotification}) => {
             required
           />
         </div>
+
         <div className="form-group">
           <label>Password:</label>
           <input
@@ -69,7 +76,10 @@ const RegisterPage = ({login,showNotification}) => {
             required
           />
         </div>
-        <button type="submit" className="submit-btn">Register</button>
+
+        <button type="submit" className="submit-btn">
+          Register
+        </button>
       </form>
     </div>
   );
