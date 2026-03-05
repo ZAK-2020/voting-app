@@ -7,19 +7,18 @@ const HomePage = ({
   setUser,
   setVotes,
   showNotification,
-}) => {  
+}) => {
+
   const handleVote = async (voteId) => {
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API}/api/vote/${voteId}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetch(`/api/vote/${voteId}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      });
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error);
@@ -27,11 +26,14 @@ const HomePage = ({
 
       const data = await response.json();
 
+      // update vote list
       setVotes((prev) =>
-        prev.map((v) => (v?._d === data?.vote?._id ? data?.vote : v))
+        prev.map((v) => (v?._id === data?.vote?._id ? data?.vote : v))
       );
 
+      // update user
       setUser(data?.user);
+
     } catch (error) {
       showNotification(error?.message || "Something went wrong", "error");
     }
@@ -44,15 +46,25 @@ const HomePage = ({
   return (
     <div className="votes-page">
       {error && <div className="error-message">{error}</div>}
+
       <div className="votes-grid">
         {Array.isArray(votes) &&
           votes.map((vote, index) => (
             <div className="vote-card" key={index}>
               <h2>{vote.option}</h2>
-              <p className="vote-count">Votes: {vote.votes}</p>
-              <p className="createdBy">Created By: {vote.createdBy?.email}</p>
+
+              <p className="vote-count">
+                Votes: {vote.votes}
+              </p>
+
+              <p className="createdBy">
+                Created By: {vote.createdBy?.email}
+              </p>
+
               <button
-                className={`vote-btn ${!user || user?.votedFor ? "disabled" : ""}`}
+                className={`vote-btn ${
+                  !user || user?.votedFor ? "disabled" : ""
+                }`}
                 onClick={() => handleVote(vote?._id)}
                 disabled={!user || user?.votedFor}
               >
