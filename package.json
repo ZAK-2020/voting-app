@@ -1,6 +1,9 @@
 {
   "name": "voting-app",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "install-backend": "npm install --prefix backend",
     "install-frontend": "npm install --prefix frontend",
