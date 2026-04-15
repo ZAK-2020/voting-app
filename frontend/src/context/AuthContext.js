@@ -10,8 +10,6 @@ export const AuthProvider = ({ children }) => {
   const initializeAuth = async () => {
     const token = localStorage.getItem("token");
 
-    console.log(token, "token");
-
     if (token) {
       try {
         const response = await fetch(buildApiUrl("/api/me"), {
@@ -24,7 +22,6 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem("token");
         }
       } catch (error) {
-        console.log("Auth initialization error", error);
         localStorage.removeItem("token");
       }
     }

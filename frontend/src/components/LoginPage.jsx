@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { buildApiUrl } from "../config";
 
 const LoginPage = ({ login, showNotification }) => {
   const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -17,6 +18,7 @@ const LoginPage = ({ login, showNotification }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setSubmitting(true);
 
     try {
       const response = await fetch(buildApiUrl("/api/login"), {
@@ -36,40 +38,67 @@ const LoginPage = ({ login, showNotification }) => {
       navigate("/");
     } catch (error) {
       showNotification(error?.message, "error");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <h2>Login</h2>
-
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label>Email:</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
+    <div className="auth-shell">
+      <div className="auth-intro">
+        <span className="section-kicker">Welcome back</span>
+        <h2>Sign in to cast your vote.</h2>
+        <p>
+          Jump straight into the live ballot, watch the count update in real
+          time, and keep your session active across refreshes.
+        </p>
+        <div className="auth-feature-list">
+          <span>Live vote updates</span>
+          <span>One-click participation</span>
+          <span>Admin controls for organizers</span>
         </div>
+      </div>
 
-        <div className="form-group">
-          <label>Password:</label>
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-        </div>
+      <div className="login-container">
+        <h2>Login</h2>
+        <p className="auth-subtitle">
+          Use your registered email and password to continue.
+        </p>
 
-        <button type="submit" className="submit-btn">
-          Login
-        </button>
-      </form>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+
+          <button type="submit" className="submit-btn" disabled={submitting}>
+            {submitting ? "Signing in..." : "Login"}
+          </button>
+        </form>
+
+        <p className="auth-switch">
+          New here? <Link to="/register">Create an account</Link>
+        </p>
+      </div>
     </div>
   );
 };

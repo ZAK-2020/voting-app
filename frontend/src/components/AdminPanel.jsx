@@ -3,6 +3,7 @@ import { buildApiUrl } from "../config";
 
 const AdminPanel = ({ votes, setVotes, showNotification }) => {
   const [newOption, setNewOption] = useState("");
+  const totalVotes = votes.reduce((sum, vote) => sum + (vote?.votes || 0), 0);
 
   const handleAddOption = async () => {
     if (!newOption?.trim()) return;
@@ -60,7 +61,26 @@ const AdminPanel = ({ votes, setVotes, showNotification }) => {
 
   return (
     <div className="admin-panel">
-      <h2>Admin Panel</h2>
+      <div className="admin-header">
+        <div>
+          <span className="section-kicker">Admin workspace</span>
+          <h2>Manage vote options</h2>
+          <p>
+            Add fresh choices, remove outdated ones, and monitor participation
+            without leaving this page.
+          </p>
+        </div>
+        <div className="admin-metrics">
+          <div className="stat-card stat-card-compact">
+            <span className="stat-label">Options</span>
+            <strong>{votes.length}</strong>
+          </div>
+          <div className="stat-card stat-card-compact">
+            <span className="stat-label">Total votes</span>
+            <strong>{totalVotes}</strong>
+          </div>
+        </div>
+      </div>
 
       <div className="add-option-form">
         <input
@@ -75,21 +95,31 @@ const AdminPanel = ({ votes, setVotes, showNotification }) => {
       <div className="current-options">
         <h3>Current Options</h3>
 
-        {votes.map((vote, index) => (
-          <div className="option-item" key={index}>
-            <div className="option-left">
-              <span className="option-label">{vote.option}</span>
-              <span className="vote-count">{vote.votes}</span>
-            </div>
-
-            <button
-              onClick={() => handleDeleteOption(vote._id)}
-              className="delete-btn"
-            >
-              Delete
-            </button>
+        {votes.length === 0 ? (
+          <div className="empty-state admin-empty-state">
+            <h3>No options created yet</h3>
+            <p>Add your first option above to start the poll.</p>
           </div>
-        ))}
+        ) : (
+          votes.map((vote, index) => (
+            <div className="option-item" key={index}>
+              <div className="option-left">
+                <span className="vote-pill">Option {index + 1}</span>
+                <span className="option-label">{vote.option}</span>
+                <span className="createdBy">
+                  {vote.votes} vote{vote.votes === 1 ? "" : "s"}
+                </span>
+              </div>
+
+              <button
+                onClick={() => handleDeleteOption(vote._id)}
+                className="delete-btn"
+              >
+                Remove
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
