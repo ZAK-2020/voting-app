@@ -31,16 +31,12 @@ function App() {
   const fetchVotes = async () => {
     try {
       const token = localStorage.getItem("token");
-
-      if (!token) {
-        throw new Error("No token found, please log in again.");
-      }
-
+      const headers = token
+        ? { Authorization: `Bearer ${token}` }
+        : undefined;
       const response = await fetch(buildApiUrl("/api/vote"), {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -49,6 +45,7 @@ function App() {
 
       const data = await response.json();
       setVotes(data);
+      setError("");
 
     } catch (error) {
       setError(error?.message);
