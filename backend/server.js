@@ -4,7 +4,8 @@ const socketIo = require("socket.io");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
-const path = require("path"); // ADD THIS
+const fs = require("fs");
+const path = require("path");
 const connectDatabase = require("./config/connection");
 const {
   register,
@@ -20,10 +21,17 @@ const app = express();
 const server = http.createServer(app);
 dotenv.config();
 
+const clientUrl = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(",").map((url) => url.trim()).filter(Boolean)
+  : true;
+const frontendBuildPath = path.join(__dirname, "../frontend/build");
+const shouldServeFrontend =
+  process.env.SERVE_FRONTEND === "true" && fs.existsSync(frontendBuildPath);
+
 // ========== SOCKET.IO SETUP ==========
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: clientUrl,
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -33,19 +41,19 @@ connectDatabase();
 
 // ========== MIDDLEWARES ==========
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: clientUrl,
   credentials: true,
 }));
 app.use(express.json());
 
 // ========== SERVE REACT BUILD IN PRODUCTION ==========
-if (process.env.NODE_ENV === "production") {
+if (shouldServeFrontend) {
   // Serve static React files
-  app.use(express.static(path.join(__dirname, "../frontend/build")));
+  app.use(express.static(frontendBuildPath));
 
   // Catch-all route (except API routes)
   app.get(/^(?!\/api).*/, (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
+    res.sendFile(path.join(frontendBuildPath, "index.html"));
   });
 }
 

@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { buildApiUrl } from "../config";
 
 const HomePage = ({
   votes = [],
@@ -11,7 +12,7 @@ const HomePage = ({
 
   const handleVote = async (voteId) => {
     try {
-      const response = await fetch(`/api/vote/${voteId}`, {
+      const response = await fetch(buildApiUrl(`/api/vote/${voteId}`), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

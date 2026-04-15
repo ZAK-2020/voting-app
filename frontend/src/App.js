@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "./context/AuthContext";
 import socketIOClient from "socket.io-client";
+import { buildApiUrl, SOCKET_URL } from "./config";
 import {
   BrowserRouter as Router,
   Routes,
@@ -27,8 +28,6 @@ function App() {
     type: "info",
   });
 
-  const [socket, setSocket] = useState(null);
-
   const fetchVotes = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -37,7 +36,7 @@ function App() {
         throw new Error("No token found, please log in again.");
       }
 
-      const response = await fetch("/api/vote", {
+      const response = await fetch(buildApiUrl("/api/vote"), {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -62,9 +61,7 @@ function App() {
   useEffect(() => {
     fetchVotes();
 
-    const newSocket = socketIOClient();
-
-    setSocket(newSocket);
+    const newSocket = socketIOClient(SOCKET_URL || undefined);
 
     newSocket.on("voteUpdated", (updatedVote) => {
       setVotes((prev) =>

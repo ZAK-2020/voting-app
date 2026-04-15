@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { buildApiUrl } from "../config";
 
 const AdminPanel = ({ votes, setVotes, showNotification }) => {
   const [newOption, setNewOption] = useState("");
@@ -7,7 +8,7 @@ const AdminPanel = ({ votes, setVotes, showNotification }) => {
     if (!newOption?.trim()) return;
 
     try {
-      const response = await fetch("/api/votes", {
+      const response = await fetch(buildApiUrl("/api/votes"), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -33,7 +34,7 @@ const AdminPanel = ({ votes, setVotes, showNotification }) => {
 
   const handleDeleteOption = async (id) => {
     try {
-      const response = await fetch(`/api/vote/${id}`, {
+      const response = await fetch(buildApiUrl(`/api/vote/${id}`), {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

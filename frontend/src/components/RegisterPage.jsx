@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { buildApiUrl } from "../config";
 
 const RegisterPage = ({ login, showNotification }) => {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ const RegisterPage = ({ login, showNotification }) => {
     event.preventDefault();
 
     try {
-      const response = await fetch("/api/register", {
+      const response = await fetch(buildApiUrl("/api/register"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
