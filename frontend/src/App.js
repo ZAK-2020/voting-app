@@ -12,7 +12,7 @@ import PresentationPage from "./components/PresentationPage";
 import DraftsPage from "./components/DraftsPage";
 
 function Shell() {
-  const { user, loading, logout } = useContext(AuthContext);
+  const { user, loading, logout, authError, retryAuth, manageAccount } = useContext(AuthContext);
   const [revision, setRevision] = useState(0);
   const [connected, setConnected] = useState(false);
   const location = useLocation();
@@ -33,6 +33,9 @@ function Shell() {
     window.scrollTo(0, 0);
     document.getElementById("main")?.focus({ preventScroll: true });
   }, [location.pathname]);
+  useEffect(() => {
+    if (user && !/^\/(login|register)(\/|$)/.test(location.pathname)) sessionStorage.removeItem("gather.authReturn");
+  }, [user, location.pathname]);
   return <>
     <a className="skip-link" href="#main">Skip to content</a>
     {!presenting && <header className="app-header">
@@ -41,13 +44,14 @@ function Shell() {
         <Link to="/" className={location.pathname === "/" ? "nav-link active" : "nav-link"}>All polls</Link>
         <Link to="/join" className="nav-link">Join poll</Link>
         {user && <Link to="/drafts" className="nav-link">My drafts</Link>}
-        {user ? <><span className="user-name">{user.username || "Member"}</span><button className="text-button" onClick={logout}>Sign out</button></> :
+        {user ? <><button className="text-button" onClick={manageAccount} aria-label="Account settings">{user.username || "Account"}</button><button className="text-button" onClick={logout}>Sign out</button></> :
           <Link className="nav-link" to="/login" state={{ from: location.pathname }}>Sign in</Link>}
         <Link className="button primary small" to="/create">+ Create poll</Link>
       </nav>
     </header>}
     <main id="main" tabIndex={-1} className={presenting ? "presentation-main" : "main-content"}>
-      {loading ? <div className="page-message" role="status">Loading your session…</div> :
+      {loading ? <div className="page-message" role="status">Loading your session…</div> : authError ?
+        <div className="surface auth-card"><h1>Check your account</h1><p className="error-message" role="alert">{authError}</p><div className="form-actions"><button className="button primary" onClick={retryAuth}>Try again</button><button className="button secondary" onClick={manageAccount}>Account settings</button><button className="text-button" onClick={logout}>Sign out</button></div></div> :
         <Routes>
           <Route path="/" element={<HomePage revision={revision} />} />
           <Route path="/join" element={<JoinPoll />} />
@@ -57,8 +61,8 @@ function Shell() {
           <Route path="/drafts" element={user ? <DraftsPage key={user._id} /> : <Navigate to="/login" state={{ from: "/drafts" }} replace />} />
           <Route path="/drafts/:id/edit" element={user ? <CreatePoll key={location.pathname + user._id} /> : <Navigate to="/login" state={{ from: location.pathname }} replace />} />
           <Route path="/polls/:id" element={<PollPage key={location.pathname + (user?._id || "guest")} revision={revision} connected={connected} />} />
-          <Route path="/login" element={<AuthPage />} />
-          <Route path="/register" element={<AuthPage register />} />
+          <Route path="/login/*" element={<AuthPage />} />
+          <Route path="/register/*" element={<AuthPage register />} />
           <Route path="/admin" element={<Navigate to="/" replace />} />
           <Route path="*" element={<div className="page-message"><h1>Page not found</h1><Link to="/">Back to polls</Link></div>} />
         </Routes>}

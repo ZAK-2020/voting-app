@@ -1,4 +1,5 @@
 import { downloadResults } from "./api";
+import { setTokenGetter } from "./auth-token";
 
 const originalFetch = global.fetch;
 const originalCreate = URL.createObjectURL;
@@ -8,12 +9,13 @@ beforeEach(() => {
   global.fetch = jest.fn();
   URL.createObjectURL = jest.fn(() => "blob:csv-download");
   URL.revokeObjectURL = jest.fn();
-  localStorage.setItem("token", "test-session");
+  setTokenGetter(async () => "test-session");
 });
 afterEach(() => {
   jest.runOnlyPendingTimers(); jest.useRealTimers(); jest.restoreAllMocks();
   global.fetch = originalFetch; URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke;
   localStorage.clear();
+  setTokenGetter(async () => null);
 });
 test("CSV download sends authentication, uses a safe filename, and releases the blob", async () => {
   const blob = new Blob(["Question,Option,Votes\r\n"], { type: "text/csv" });

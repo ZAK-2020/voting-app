@@ -4,7 +4,7 @@ A real-time voting application built with React (frontend), Node.js/Express (bac
 
 ## Local development
 
-Start MongoDB on `127.0.0.1:27017`. In `backend/.env`, set a random `JWT_SECRET` (never commit it).
+Start MongoDB on `127.0.0.1:27017`. Create a separate Clerk application for Gather and set its `CLERK_SECRET_KEY` in `backend/.env` (never commit it). Configure Google sign-in and required email verification using the [Clerk setup guide](docs/clerk-setup.md). No legacy account migration or linking is performed.
 
 In one terminal, from `backend/`, run:
 
@@ -20,6 +20,7 @@ In `frontend/.env`, set:
 ```env
 REACT_APP_API_URL=
 REACT_APP_SOCKET_URL=
+REACT_APP_CLERK_PUBLISHABLE_KEY=your_voting_app_clerk_publishable_key
 PORT=5001
 BROWSER=none
 ```
@@ -30,7 +31,7 @@ The development server proxies API and Socket.IO requests to port 5000. Keeping 
 
 For phone testing, open `http://<your-computer-LAN-IP>:5001` on both devices. If presenting from `localhost`, optionally set `REACT_APP_SHARE_URL=http://<your-computer-LAN-IP>:5001` in `frontend/.env.development.local` and restart the frontend. This makes QR codes use the LAN address without embedding it in production builds. Both devices must be on the same reachable network and the computer must allow incoming traffic on port 5001. No public hosting is enabled by this setup.
 
-Register an account, create a poll, and share its `/polls/:id` link. Every registered user can create polls. Public visitors can view poll questions; results follow the creator's visibility setting. Sign-in is required to vote. Each account can vote once in each poll. Poll creators can close voting; deadlines are enforced on the server. Published questions/options and visibility settings cannot be edited.
+Register a new Clerk account, verify its primary email, create a poll, and share its `/polls/:id` link. Verified users can create polls. Public visitors can view poll questions; results follow the creator's visibility setting. Sign-in is required to vote. Each account can vote once in each poll. Poll creators can close voting; deadlines are enforced on the server. Published questions/options and visibility settings cannot be edited.
 
 ## Drafts, previews, and duplication
 
@@ -97,7 +98,7 @@ This version supports up to 10,000 responses per poll to keep embedded receipts 
 ```env
 PORT=3001
 MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
+CLERK_SECRET_KEY=your_voting_app_clerk_secret_key
 CLIENT_URL=https://your-frontend-project.vercel.app
 SERVE_FRONTEND=false
 ```
@@ -107,6 +108,7 @@ SERVE_FRONTEND=false
 ```env
 REACT_APP_API_URL=https://your-backend-service.up.railway.app
 REACT_APP_SOCKET_URL=https://your-backend-service.up.railway.app
+REACT_APP_CLERK_PUBLISHABLE_KEY=your_voting_app_clerk_publishable_key
 ```
 
 ## Deployment Notes
@@ -117,3 +119,4 @@ REACT_APP_SOCKET_URL=https://your-backend-service.up.railway.app
 - In Railway, set the service root to `backend`.
 - After Railway gives you a public URL, set that URL in Vercel as `REACT_APP_API_URL` and `REACT_APP_SOCKET_URL`.
 - After Vercel gives you a public URL, set that URL in Railway as `CLIENT_URL`.
+- Set the Clerk keys from the same **voting app instance**, enable Google and verified email signup, then follow [Clerk setup and release checks](docs/clerk-setup.md) before deploying both services. Old password login is retired; do not deploy this change without configuring Clerk first.

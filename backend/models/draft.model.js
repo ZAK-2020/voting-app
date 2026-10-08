@@ -6,7 +6,8 @@ const schema = new Schema({
   options: { type: [String], default: ["", ""] },
   resultsVisibility: { type: String, enum: ["always", "after_vote", "after_close"], default: "always" },
   closesAt: { type: Date, default: null },
-  createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  createdBy: { type: Schema.Types.ObjectId, refPath: "createdByModel", required: true },
+  createdByModel: { type: String, enum: ["User", "ClerkUser"], default: "User" },
   state: { type: String, enum: ["draft", "publishing"], default: "draft" },
 }, { timestamps: true });
 schema.index({ createdBy: 1, updatedAt: -1 });

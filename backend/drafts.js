@@ -14,7 +14,7 @@ module.exports = function draftRoutes(io) {
   router.param("id", (req, res, next, id) => mongoose.isObjectIdOrHexString(id) ? next() : res.status(400).json({ error: "Invalid draft link." }));
   router.get("/", async (req, res) => res.json((await Draft.find({ createdBy: req.user._id }).sort({ updatedAt: -1 })).map(draftView)));
   router.post("/", async (req, res) => {
-    const draft = await Draft.create({ ...pollInput(req.body, false), createdBy: req.user._id });
+    const draft = await Draft.create({ ...pollInput(req.body, false), createdBy: req.user._id, createdByModel: "ClerkUser" });
     res.status(201).json(draftView(draft));
   });
   router.get("/:id", async (req, res) => {
@@ -49,7 +49,7 @@ module.exports = function draftRoutes(io) {
     if (!locked) return res.status(409).json({ error: "The draft changed. Reload it and try again." });
     let published;
     try {
-      published = await withJoinCode(joinCode => Poll.create({ ...input, _id: draft._id, options: input.options.map(label => ({ label })), createdBy: req.user._id, joinCode }));
+      published = await withJoinCode(joinCode => Poll.create({ ...input, _id: draft._id, options: input.options.map(label => ({ label })), createdBy: req.user._id, createdByModel: "ClerkUser", joinCode }));
     } catch (error) {
       // A simultaneous publish may already have created exactly this poll.
       published = await Poll.findOne({ _id: draft._id, createdBy: req.user._id });

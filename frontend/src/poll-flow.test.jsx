@@ -9,6 +9,7 @@ import AuthPage from "./components/AuthPage";
 import CreatePoll from "./components/CreatePoll";
 
 jest.mock("./api", () => ({ ...jest.requireActual("./api"), api: jest.fn(), downloadResults: jest.fn() }));
+jest.mock("@clerk/react", () => ({ SignIn: () => null, SignUp: () => null }));
 global.IS_REACT_ACT_ENVIRONMENT = true;
 const poll = { resultsVisible: true, resultsVisibility: "always", _id: "abc123", question: "Where should we meet?", organizer: "Sam", createdBy: "owner", totalVotes: 0, options: [{ _id: "park", label: "Park", votes: 0 }, { _id: "cafe", label: "Cafe", votes: 0 }], closesAt: null, closedAt: null };
 let container, root;
@@ -69,12 +70,10 @@ test("dashboard filters open, closed, and owned polls", async () => {
   expect(container.querySelector(".poll-card").textContent).toContain("Where should we meet?");
 });
 
-test("authentication errors are visible and allow retry", async () => {
-  api.mockRejectedValue(new Error("Email or password is incorrect."));
+test("missing Clerk setup shows guidance instead of a broken signup form", async () => {
   await render(<AuthPage />, null, "/");
-  await act(async () => container.querySelector("form").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
-  expect(container.querySelector('[role="alert"]').textContent).toContain("Email or password is incorrect.");
-  expect(button("Sign in").disabled).toBe(false);
+  expect(container.querySelector('[role="status"]').textContent).toContain("Sign-in is being set up");
+  expect(container.querySelector("form")).toBeNull();
 });
 
 test("after-close voters see their receipt but no distribution or vote controls", async () => {

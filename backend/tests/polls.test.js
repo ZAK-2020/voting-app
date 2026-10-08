@@ -12,7 +12,7 @@ process.env.JWT_SECRET = crypto.randomBytes(32).toString("hex");
 process.env.SERVE_FRONTEND = "false";
 const { start, io } = require("../server");
 const Poll = require("../models/poll.model");
-const User = require("../models/user.model");
+const identities = require("./helpers/clerk")();
 const { withJoinCode, backfillJoinCodes } = require("../join-codes");
 
 test("independent polls, privacy, concurrent votes and lifecycle", async t => {
@@ -32,18 +32,12 @@ test("independent polls, privacy, concurrent votes and lifecycle", async t => {
     return { status: response.status, data: await response.json() };
   }
   let owner, voter, poll, second;
-  await t.test("registration and login return only public user fields", async () => {
-    const result = await request("/register", "POST", { username: "Organizer", email: "owner@example.com", password: "testing-password" });
-    assert.equal(result.status, 201);
-    owner = result.data;
+  await t.test("Clerk accounts return only public user fields", async () => {
+    owner = await identities.account(request, "Organizer", "owner@example.com");
+    voter = await identities.account(request, "Voter", "voter@example.com");
     assert.equal(owner.user.username, "Organizer");
-    assert.deepEqual(Object.keys(owner.user).sort(), ["_id", "email", "role", "username"]);
-    const login = await request("/login", "POST", { email: "owner@example.com", password: "testing-password" });
-    assert.equal(login.status, 200);
-    assert.equal(login.data.user.password, undefined);
+    assert.deepEqual(Object.keys(owner.user).sort(), ["_id", "email", "emailVerified", "role", "username"]);
     assert.equal((await request("/me", "GET", null, owner.token)).data.password, undefined);
-    voter = (await request("/register", "POST", { username: "Voter", email: "voter@example.com", password: "testing-password" })).data;
-    assert.equal((await request("/register", "POST", { username: "Other", email: "owner@example.com", password: "testing-password" })).status, 409);
   });
   await t.test("poll creation requires authentication and validates options and deadlines", async () => {
     assert.equal((await request("/polls", "POST", { question: "Q", options: ["A", "B"] })).status, 401);
@@ -119,7 +113,7 @@ test("independent polls, privacy, concurrent votes and lifecycle", async t => {
     const list = await request("/polls");
     assert.equal(list.data.length, 2);
     assert.ok(list.data.every(item => !item.ballots));
-    await User.deleteOne({ _id: voter.user._id });
+    identities.revoke(voter.token);
     assert.equal((await request("/me", "GET", null, voter.token)).status, 401);
   });
   await t.test("existing polls get permanent codes without changing votes or timestamps", async () => {
@@ -137,7 +131,7 @@ test("independent polls, privacy, concurrent votes and lifecycle", async t => {
     assert.equal((await request("/join/" + after.joinCode)).data.pollId, legacy.id);
   });
   await t.test("visibility rules strip results from all responses until eligible", async () => {
-    const participant = (await request("/register", "POST", { username: "Participant", email: "privacy@example.com", password: "testing-password" })).data;
+    const participant = await identities.account(request, "Participant", "privacy@example.com");
     const hidden = data => {
       assert.equal(data.resultsVisible, false);
       assert.ok(data.options.every(option => !Object.hasOwn(option, "votes")));
@@ -149,7 +143,8 @@ test("independent polls, privacy, concurrent votes and lifecycle", async t => {
       hidden(created.data);
       const id = created.data._id;
       const endpoint = "/polls/" + id;
-      for (const token of [undefined, owner.token, participant.token, "bad-token"]) hidden((await request(endpoint, "GET", null, token)).data);
+      for (const token of [undefined, owner.token, participant.token]) hidden((await request(endpoint, "GET", null, token)).data);
+      assert.equal((await request(endpoint, "GET", null, "bad-token")).status, 401);
       const event = once(socket, "pollChanged");
       const vote = await request(endpoint + "/votes", "POST", { optionId: created.data.options[0]._id }, participant.token);
       assert.equal(vote.status, 201);
@@ -181,7 +176,7 @@ test("independent polls, privacy, concurrent votes and lifecycle", async t => {
     assert.equal((await request("/polls/" + poll._id)).data.resultsVisibility, "always");
   });
   await t.test("archive and restore preserve votes, links, and closed status", async () => {
-    const stranger = (await request("/register", "POST", { username: "Stranger", email: "archive@example.com", password: "testing-password" })).data;
+    const stranger = await identities.account(request, "Stranger", "archive@example.com");
     const fresh = (await request("/polls", "POST", { question: "Archive lifecycle", options: ["A", "B"] }, owner.token)).data;
     const url = "/polls/" + fresh._id;
     assert.equal((await request(url + "/archive", "POST", null, owner.token)).status, 409);
@@ -206,7 +201,7 @@ test("independent polls, privacy, concurrent votes and lifecycle", async t => {
     assert.equal((await request("/polls/" + scheduled._id + "/archive", "POST", null, owner.token)).status, 200);
   });
   await t.test("CSV export respects owner permissions and visibility, including after voting", async () => {
-    const outsider = (await request("/login", "POST", { email: "archive@example.com", password: "testing-password" })).data;
+    const outsider = await identities.account(request, "Outsider", "outsider@example.com");
     for (const mode of ["always", "after_vote", "after_close"]) {
       const fresh = (await request("/polls", "POST", { question: '=SUM(1,2)', options: ['=2+2', 'A, "quoted" choice'], resultsVisibility: mode }, owner.token)).data;
       const url = base + "/api/polls/" + fresh._id + "/export";

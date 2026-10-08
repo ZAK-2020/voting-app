@@ -10,6 +10,7 @@ process.env.JWT_SECRET = crypto.randomBytes(32).toString("hex");
 process.env.SERVE_FRONTEND = "false";
 const { start, io } = require("../server");
 const Poll = require("../models/poll.model");
+const identities = require("./helpers/clerk")();
 const Draft = require("../models/draft.model");
 const { backfillJoinCodes } = require("../join-codes");
 
@@ -25,8 +26,8 @@ test("private drafts, preview-ready validation, publishing and duplication", asy
     const response = await fetch(base + "/api" + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
     return { status: response.status, data: await response.json() };
   }
-  const owner = (await request("/register", "POST", { username: "Owner", email: "owner@example.com", password: "testing-password" })).data;
-  const other = (await request("/register", "POST", { username: "Other", email: "other@example.com", password: "testing-password" })).data;
+  const owner = await identities.account(request, "Owner", "owner@example.com");
+  const other = await identities.account(request, "Other", "other@example.com");
   let draft;
   const contents = { question: "Where next?", options: ["Park", "Cafe"], resultsVisibility: "after_close", closesAt: null };
   await t.test("unfinished drafts can be saved and only their creator can read them", async () => {

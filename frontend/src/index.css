@@ -728,6 +728,10 @@ nav {
   max-width: 480px;
   margin: auto;
 }
+.auth-page .cl-rootBox, .auth-page .cl-cardBox {
+  width: 100%;
+  max-width: 100%;
+}
 .auth-card {
   margin-top: 1rem;
 }

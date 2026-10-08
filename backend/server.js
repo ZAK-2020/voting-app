@@ -7,8 +7,6 @@ const path = require("path");
 const fs = require("fs");
 require("dotenv").config();
 const {
-  register,
-  login,
   userDetails,
 } = require("./controllers/user.controller");
 const authenticate = require("./middlewares/auth");
@@ -55,8 +53,7 @@ function publicPoll(poll, hasVoted = false) {
 }
 const withOrganizer = (query) => query.populate("createdBy", "username");
 app.use("/api/drafts", require("./drafts")(io));
-app.post("/api/register", register);
-app.post("/api/login", login);
+app.post(["/api/register", "/api/login"], (req, res) => res.status(410).json({ error: "Password accounts have been retired. Please sign in with Clerk." }));
 app.get("/api/me", authenticate, userDetails);
 app.get("/api/health", (req, res) =>
   res.json({ status: "ok", database: mongoose.connection.readyState === 1 }),
@@ -90,6 +87,7 @@ app.post("/api/polls", authenticate, async (req, res) => {
       options: labels.map((label) => ({ label })),
       closesAt: deadline,
       createdBy: req.user._id,
+      createdByModel: "ClerkUser",
       joinCode,
       resultsVisibility,
     }),
@@ -106,7 +104,7 @@ app.param("pollId", (req, res, next, id) => {
 app.post("/api/polls/:pollId/duplicate", authenticate, async (req, res) => {
   const source = await Poll.findOne({ _id: req.params.pollId, createdBy: req.user._id });
   if (!source) return res.status(404).json({ error: "Only your own polls can be duplicated." });
-  const draft = await Draft.create({ question: source.question, options: source.options.map(option => option.label), resultsVisibility: source.resultsVisibility || "always", closesAt: null, createdBy: req.user._id });
+  const draft = await Draft.create({ question: source.question, options: source.options.map(option => option.label), resultsVisibility: source.resultsVisibility || "always", closesAt: null, createdBy: req.user._id, createdByModel: "ClerkUser" });
   res.status(201).json({ draftId: draft.id });
 });
 app.get("/api/polls/:pollId/export", authenticate, async (req, res) => {
@@ -228,10 +226,12 @@ app.use((error, req, res, next) => {
     });
 });
 async function start(port = process.env.PORT || 5000) {
-  if (!process.env.JWT_SECRET || !process.env.MONGO_URI)
-    throw new Error("MONGO_URI and JWT_SECRET must be configured.");
+  if (!process.env.MONGO_URI)
+    throw new Error("MONGO_URI must be configured.");
   await mongoose.connect(process.env.MONGO_URI);
-  await Promise.all([Poll.init(), Draft.init(), require("./models/user.model").init()]);
+  // Register the legacy model for existing poll attribution; no account migration.
+  require("./models/user.model");
+  await Promise.all([Poll.init(), Draft.init(), require("./models/clerk-user.model").init()]);
   await backfillJoinCodes();
   await new Promise((resolve) => server.listen(port, resolve));
   console.log("Voting API ready on port " + server.address().port);
