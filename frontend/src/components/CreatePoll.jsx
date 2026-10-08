@@ -11,6 +11,7 @@ export default function CreatePoll() {
   const [version, setVersion] = useState(0);
   const [loading, setLoading] = useState(!!id);
   const [loadError, setLoadError] = useState("");
+  const [reload, setReload] = useState(0);
   const [preview, setPreview] = useState(!!location.state?.preview);
   const [locked, setLocked] = useState(false);
   const [saved, setSaved] = useState("");
@@ -23,6 +24,7 @@ export default function CreatePoll() {
   const [error, setError] = useState("");
   useEffect(() => {
     if (!id) return;
+    setLoading(true); setLoadError("");
     let active = true;
     api("/api/drafts/" + id).then(data => {
       if (!active) return;
@@ -35,7 +37,7 @@ export default function CreatePoll() {
       setLoading(false);
     }).catch(error => { if (active) { setLoadError(error.message); setLoading(false); } });
     return () => { active = false; };
-  }, [id]);
+  }, [id, reload]);
   useEffect(() => {
     const warn = event => { if (dirty) { event.preventDefault(); event.returnValue = ""; } };
     window.addEventListener("beforeunload", warn);
@@ -68,7 +70,7 @@ export default function CreatePoll() {
       navigate("/polls/" + data.pollId, { replace: true, state: { created: true } });
     } catch (error) { setError(error.message); } finally { setSubmitting(false); }
   }
-  if (loading || loadError) return <div className="narrow-page"><Link className="back-link" to="/drafts">← My drafts</Link><p className="page-message" role={loadError ? "alert" : "status"}>{loadError || "Loading draft…"}</p></div>;
+  if (loading || loadError) return <div className="narrow-page"><Link className="back-link" to="/drafts">← My drafts</Link><p className="page-message" role={loadError ? "alert" : "status"}>{loadError || "Loading draft…"}</p>{loadError && <button className="button secondary" onClick={() => setReload(value => value + 1)}>Try again</button>}</div>;
   if (preview) return <div className="narrow-page">
     <div className="page-heading compact"><span className="eyebrow">Private preview · Not published</span><h1>Ready for your people?</h1><p>This is how the ballot will look. Preview selections do not cast a vote.</p></div>
     <article className="surface ballot preview-ballot"><span className="badge draft">Preview</span><h1>{question}</h1><p className="poll-meta">{closesAt ? "Closes " + formatDate(closesAt) : "No closing date"}</p>
@@ -86,7 +88,7 @@ export default function CreatePoll() {
   return (
     <div className="narrow-page">
       <Link className="back-link" to="/drafts">
-        ← All polls
+        ← My drafts
       </Link>
       <div className="page-heading compact">
         <span className="eyebrow">Make room for every voice</span>
@@ -144,9 +146,10 @@ export default function CreatePoll() {
                     type="button"
                     disabled={options.length <= 2}
                     aria-label={"Remove option " + (index + 1)}
-                    onClick={() =>
-                      setOptions(options.filter((_, i) => i !== index))
-                    }
+                    onClick={() => {
+                      setOptions(options.filter((_, i) => i !== index));
+                      setDirty(true); setSaved("");
+                    }}
                   >
                     ×
                   </button>
@@ -157,7 +160,7 @@ export default function CreatePoll() {
               <button
                 className="text-button add-option"
                 type="button"
-                onClick={() => setOptions([...options, ""])}
+                onClick={() => { setOptions([...options, ""]); setDirty(true); setSaved(""); }}
               >
                 + Add another option
               </button>

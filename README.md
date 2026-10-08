@@ -71,6 +71,8 @@ The UI uses indigo `#6366F1` (hover `#4F46E5`), purple `#8B5CF6`, background `#F
 
 ## Verification
 
+GitHub Actions runs **Backend tests** and **Frontend tests and build** on every push and pull request, with a manual trigger available. Backend checks use a temporary MongoDB 7 service and isolated test databases; frontend checks run in CI mode so build warnings fail the check. The workflow uses the project's declared Node 20 target, lockfile-based installs, read-only repository permissions, and no production credentials. See [Project checks](.github/workflows/checks.yml) and the [mobile usability review](docs/usability-review.md) for the automated coverage and the physical-device checks still pending.
+
 - Backend: `npm test` in `backend/` (requires local MongoDB). Tests create and remove an isolated, randomly named local database.
 - Frontend: `npm test -- --watchAll=false --runInBand` in `frontend/`.
 - Production compilation: `npm run build` in `frontend/`.

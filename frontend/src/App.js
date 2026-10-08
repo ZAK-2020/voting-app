@@ -29,7 +29,10 @@ function Shell() {
     document.addEventListener("visibilitychange", onVisible);
     return () => { socket.disconnect(); clearInterval(interval); document.removeEventListener("visibilitychange", onVisible); };
   }, []);
-  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.getElementById("main")?.focus({ preventScroll: true });
+  }, [location.pathname]);
   return <>
     <a className="skip-link" href="#main">Skip to content</a>
     {!presenting && <header className="app-header">
@@ -43,7 +46,7 @@ function Shell() {
         <Link className="button primary small" to="/create">+ Create poll</Link>
       </nav>
     </header>}
-    <main id="main" className={presenting ? "presentation-main" : "main-content"}>
+    <main id="main" tabIndex={-1} className={presenting ? "presentation-main" : "main-content"}>
       {loading ? <div className="page-message" role="status">Loading your session…</div> :
         <Routes>
           <Route path="/" element={<HomePage revision={revision} />} />

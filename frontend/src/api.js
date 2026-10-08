@@ -1,24 +1,34 @@
 import { buildApiUrl } from "./config";
+async function request(path, options) {
+  try { return await fetch(buildApiUrl(path), options); }
+  catch (error) {
+    if (error.name === "AbortError") throw error;
+    throw new Error("Could not connect. Check your connection and try again.");
+  }
+}
+async function readJson(response) {
+  const data = await response.json().catch(() => null);
+  if (!data) throw new Error("The service is temporarily unavailable. Please try again.");
+  if (!response.ok) throw new Error(data.error || "Something went wrong. Please try again.");
+  return data;
+}
 export async function api(path, { body, ...options } = {}) {
   const token = localStorage.getItem("token");
-  const response = await fetch(buildApiUrl(path), {
+  const response = await request(path, {
     ...options,
     headers: { ...(token ? { Authorization: "Bearer " + token } : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Something went wrong. Please try again.");
-  return data;
+  return readJson(response);
 }
 export const isClosed = (poll, now = Date.now()) => Boolean(poll.closedAt || (poll.closesAt && new Date(poll.closesAt).getTime() <= now));
 export const formatDate = value => new Date(value).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 export async function downloadResults(pollId) {
   const token = localStorage.getItem("token");
-  const response = await fetch(buildApiUrl("/api/polls/" + pollId + "/export"), { headers: token ? { Authorization: "Bearer " + token } : {} });
+  const response = await request("/api/polls/" + pollId + "/export", { headers: token ? { Authorization: "Bearer " + token } : {} });
   if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.error || "Unable to export results. Please try again.");
+    await readJson(response);
   }
   const url = URL.createObjectURL(await response.blob());
   const link = document.createElement("a");

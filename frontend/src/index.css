@@ -1358,3 +1358,26 @@ h2,
 
 /* Private poll workspace */
 .drafts-list{margin-top:2rem}.badge.draft{background:#F5F3FF;color:#6D28D9}.editor-actions{margin:1.4rem 0;flex-wrap:wrap}.preview-ballot{margin-bottom:1.5rem}.preview-ballot .form-note{margin:1rem 0 0}.owner-controls>div{flex:1;min-width:200px}.owner-controls p{margin-top:.3rem}.preview-ballot .choice{cursor:pointer}
+
+/* Narrow-screen usability: preserve the supplied palette and type scale. */
+@media (max-width:680px) {
+  .app-header nav{width:100%;gap:.5rem;justify-content:flex-start}
+  .app-header .nav-link,.app-header .text-button{display:inline-flex;align-items:center;min-height:44px;padding:.5rem}
+  .app-header nav .nav-link:first-child{display:inline-flex}
+  .button.small,.filter{min-height:44px}
+  .icon-button{width:44px;min-width:44px;min-height:44px}
+  .form-group input,.share-panel input,.search input,.join-input-row input{font-size:16px}
+  .surface,.presentation-results,.share-details,.result-label>span{min-width:0}
+  .poll-meta,.success-message,.form-note,.presentation-meta,.owner-controls{overflow-wrap:anywhere}
+  .detail-actions,.form-actions{flex-wrap:wrap}
+  .presentation-toolbar .button{min-height:44px}
+}
+@media (max-width:380px) {
+  .join-input-row{flex-wrap:wrap}
+  .join-input-row input,.join-input-row .button{flex:1 1 100%;width:100%}
+  .result-label{flex-wrap:wrap;row-gap:.25rem}
+  .result-label>span{flex:1 1 100%}
+  .result-label>strong{margin-left:auto}
+  .results-heading{flex-wrap:wrap}
+  .owner-controls>div{min-width:0;flex-basis:100%}
+}

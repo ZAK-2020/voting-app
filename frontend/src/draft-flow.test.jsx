@@ -57,3 +57,24 @@ test("my drafts handles untitled polls and opens private edit links", async () =
   expect(container.querySelector(".poll-card").getAttribute("href")).toBe("/drafts/draft123/edit");
   expect(container.textContent).toContain("Private draft");
 });
+
+test("adding or removing an option after a save marks unsaved changes", async () => {
+  api.mockResolvedValue(draft);
+  await render("/drafts/draft123/edit");
+  await click("Add another option");
+  expect(container.textContent).toContain("You have unsaved changes");
+  await click("Save draft");
+  expect(container.textContent).not.toContain("You have unsaved changes");
+  await act(async () => container.querySelector('[aria-label="Remove option 3"]').click());
+  expect(container.textContent).toContain("You have unsaved changes");
+  expect(container.querySelector(".back-link").textContent).toContain("My drafts");
+});
+
+test("a failed draft load can be retried without leaving the editor", async () => {
+  api.mockRejectedValueOnce(new Error("Connection unavailable."));
+  await render("/drafts/draft123/edit");
+  expect(container.querySelector('[role="alert"]').textContent).toContain("Connection unavailable");
+  api.mockResolvedValueOnce(draft);
+  await click("Try again");
+  expect(container.querySelector("#question").value).toBe(draft.question);
+});
