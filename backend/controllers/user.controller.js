@@ -1,74 +1,58 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
-
-//Signup
+const publicUser = (user) => ({
+  _id: user._id,
+  username: user.username || "Member",
+  email: user.email,
+  role: user.role,
+});
+const session = (user) => ({
+  token: jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "1d" }),
+  user: publicUser(user),
+});
 const register = async (req, res) => {
-  const { username, email, password } = req.body;
-  if (!username || !email || !password) {
-    return res.status(400).json({ error: "All fields are required" });
+  const { username, email, password } = req.body || {};
+  if (
+    typeof username !== "string" ||
+    !username.trim() ||
+    username.trim().length > 60 ||
+    typeof email !== "string" ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+    email.length > 254 ||
+    typeof password !== "string" ||
+    password.length < 8 ||
+    Buffer.byteLength(password) > 72
+  ) {
+    return res.status(400).json({
+      error:
+        "Enter a display name, valid email, and a password of at least 8 characters (up to 72 bytes).",
+    });
   }
   try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ error: "Email already exist" });
-    }
     const user = await User.create({
-      username,
-      email,
+      username: username.trim(),
+      email: email.trim().toLowerCase(),
       password,
     });
-    const token = jwt.sign({ id: user?.id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
-    res.status(201).json({
-      token,
-      user,
-    });
+    res.status(201).json(session(user));
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    if (error.code === 11000)
+      return res
+        .status(409)
+        .json({ error: "An account with this email already exists." });
+    throw error;
   }
 };
-
-//Login
 const login = async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: "All fields are required" });
-  }
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ error: "User not found" });
-    }
-    const isMatch = await user.comparePassword(password);
-
-    if (!isMatch) {
-      return res.status(400).json({ error: "wrong password" });
-    }
-    const token = jwt.sign({ id: user?.id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
-    res.status(201).json({
-      token,
-      user,
-    });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
+  const { email, password } = req.body || {};
+  if (typeof email !== "string" || typeof password !== "string")
+    return res.status(400).json({ error: "Enter your email and password." });
+  const user = await User.findOne({ email: email.trim().toLowerCase() }).select(
+    "+password",
+  );
+  if (!user || !(await user.comparePassword(password)))
+    return res.status(401).json({ error: "Email or password is incorrect." });
+  res.json(session(user));
 };
-
-//user details
-
-const userDetails = async (req,res)=>{
-    try{
-        const user = req.user;
-        res.status(201).json(user);
-    }catch(error){
-
-    }
-}
-module.exports = {
-  register,
-  login,
-  userDetails,
-};
+const userDetails = (req, res) => res.json(publicUser(req.user));
+module.exports = { register, login, userDetails };

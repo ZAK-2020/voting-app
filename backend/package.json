@@ -5,6 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:local": "node local.js",
+    "test": "node --test tests/*.test.js",
     "build": "echo Backend service does not require a build step"
   },
   "keywords": [],

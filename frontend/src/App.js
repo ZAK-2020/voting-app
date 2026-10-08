@@ -1,182 +1,66 @@
 import { useContext, useEffect, useState } from "react";
-import { AuthContext } from "./context/AuthContext";
+import { BrowserRouter, Link, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import socketIOClient from "socket.io-client";
-import { buildApiUrl, SOCKET_URL } from "./config";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-
-import Header from "./components/Header";
+import { AuthContext } from "./context/AuthContext";
+import { SOCKET_URL } from "./config";
 import HomePage from "./components/HomePage";
-import LoginPage from "./components/LoginPage";
-import Register from "./components/RegisterPage";
-import AdminPanel from "./components/AdminPanel";
+import CreatePoll from "./components/CreatePoll";
+import PollPage from "./components/PollPage";
+import AuthPage from "./components/AuthPage";
+import JoinPoll from "./components/JoinPoll";
+import PresentationPage from "./components/PresentationPage";
+import DraftsPage from "./components/DraftsPage";
 
-function App() {
-  const { user, logout, login, setUser } = useContext(AuthContext);
-
-  const [votes, setVotes] = useState([]);
-  const [isLoading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const [notification, setNotification] = useState({
-    show: false,
-    message: "",
-    type: "info",
-  });
-
-  const fetchVotes = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const headers = token
-        ? { Authorization: `Bearer ${token}` }
-        : undefined;
-      const response = await fetch(buildApiUrl("/api/vote"), {
-        method: "GET",
-        headers,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch votes");
-      }
-
-      const data = await response.json();
-      setVotes(data);
-      setError("");
-
-    } catch (error) {
-      setError(error?.message);
-
-    } finally {
-      setLoading(false);
-    }
-  };
-
+function Shell() {
+  const { user, loading, logout } = useContext(AuthContext);
+  const [revision, setRevision] = useState(0);
+  const [connected, setConnected] = useState(false);
+  const location = useLocation();
+  const presenting = /^\/polls\/[^/]+\/present\/?$/.test(location.pathname);
   useEffect(() => {
-    fetchVotes();
-
-    const newSocket = socketIOClient(SOCKET_URL || undefined);
-
-    newSocket.on("voteUpdated", (updatedVote) => {
-      setVotes((prev) =>
-        prev.map((v) => (v?._id === updatedVote?._id ? updatedVote : v))
-      );
-      showNotification("Vote updated!", "info");
-    });
-
-    newSocket.on("voteCreated", (newVote) => {
-      setVotes((prev) => [...prev, newVote]);
-      showNotification("New Vote Option Added!", "success");
-    });
-
-    newSocket.on("voteDeleted", (voteId) => {
-      setVotes((prev) => prev.filter((item) => item._id !== voteId));
-      showNotification("Vote Deleted Successfully", "success");
-    });
-
-    return () => {
-      newSocket.disconnect();
-    };
-
+    const socket = socketIOClient(SOCKET_URL || undefined);
+    const refresh = () => setRevision(value => value + 1);
+    socket.on("connect", () => { setConnected(true); refresh(); });
+    socket.on("disconnect", () => setConnected(false));
+    socket.on("pollChanged", refresh);
+    // Refresh after missed events, tab switches, and scheduled deadlines.
+    const interval = setInterval(refresh, 15000);
+    const onVisible = () => { if (!document.hidden) refresh(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { socket.disconnect(); clearInterval(interval); document.removeEventListener("visibilitychange", onVisible); };
   }, []);
-
-  const showNotification = (message, type) => {
-    setNotification({ show: true, message, type });
-
-    setTimeout(() => {
-      setNotification((prev) => ({ ...prev, show: false }));
-    }, 3000);
-  };
-
-  if (isLoading) return <div className="loading">Loading...</div>;
-
-  return (
-    <Router>
-      <div className="app-container">
-
-        <Header
-          user={user}
-          logout={logout}
-          showNotification={showNotification}
-        />
-
-        <main className="main-content">
-
-          <Routes>
-
-            <Route
-              path="/"
-              element={
-                <HomePage
-                  votes={votes || []}
-                  error={error}
-                  user={user}
-                  setUser={setUser}
-                  setVotes={setVotes}
-                  showNotification={showNotification}
-                />
-              }
-            />
-
-            <Route
-              path="/login"
-              element={
-                user?.role === "admin" ? (
-                  <Navigate to="/admin" />
-                ) : user ? (
-                  <Navigate to="/" />
-                ) : (
-                  <LoginPage
-                    showNotification={showNotification}
-                    login={login}
-                  />
-                )
-              }
-            />
-
-            <Route
-              path="/register"
-              element={
-                user ? (
-                  <Navigate to="/" />
-                ) : (
-                  <Register
-                    login={login}
-                    showNotification={showNotification}
-                  />
-                )
-              }
-            />
-
-            {user?.role === "admin" && (
-              <Route
-                path="/admin"
-                element={
-                  <AdminPanel
-                    votes={votes}
-                    setVotes={setVotes}
-                    showNotification={showNotification}
-                  />
-                }
-              />
-            )}
-
-          </Routes>
-
-        </main>
-
-        {notification.show && (
-          <div className={`notification ${notification.type}`}>
-            {notification.message}
-          </div>
-        )}
-
-      </div>
-    </Router>
-  );
+  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
+  return <>
+    <a className="skip-link" href="#main">Skip to content</a>
+    {!presenting && <header className="app-header">
+      <Link to="/" className="brand" aria-label="Voting app home"><span className="brand-icon" aria-hidden="true">✓</span><span>Gather<span className="brand-dot">.</span></span></Link>
+      <nav aria-label="Main navigation">
+        <Link to="/" className={location.pathname === "/" ? "nav-link active" : "nav-link"}>All polls</Link>
+        <Link to="/join" className="nav-link">Join poll</Link>
+        {user && <Link to="/drafts" className="nav-link">My drafts</Link>}
+        {user ? <><span className="user-name">{user.username || "Member"}</span><button className="text-button" onClick={logout}>Sign out</button></> :
+          <Link className="nav-link" to="/login" state={{ from: location.pathname }}>Sign in</Link>}
+        <Link className="button primary small" to="/create">+ Create poll</Link>
+      </nav>
+    </header>}
+    <main id="main" className={presenting ? "presentation-main" : "main-content"}>
+      {loading ? <div className="page-message" role="status">Loading your session…</div> :
+        <Routes>
+          <Route path="/" element={<HomePage revision={revision} />} />
+          <Route path="/join" element={<JoinPoll />} />
+          <Route path="/join/:code" element={<JoinPoll />} />
+          <Route path="/polls/:id/present" element={<PresentationPage key={location.pathname} revision={revision} connected={connected} />} />
+          <Route path="/create" element={user ? <CreatePoll key={"new-" + user._id} /> : <Navigate to="/login" state={{ from: "/create" }} replace />} />
+          <Route path="/drafts" element={user ? <DraftsPage key={user._id} /> : <Navigate to="/login" state={{ from: "/drafts" }} replace />} />
+          <Route path="/drafts/:id/edit" element={user ? <CreatePoll key={location.pathname + user._id} /> : <Navigate to="/login" state={{ from: location.pathname }} replace />} />
+          <Route path="/polls/:id" element={<PollPage key={location.pathname + (user?._id || "guest")} revision={revision} connected={connected} />} />
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/register" element={<AuthPage register />} />
+          <Route path="/admin" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<div className="page-message"><h1>Page not found</h1><Link to="/">Back to polls</Link></div>} />
+        </Routes>}
+    </main>
+    {!presenting && <footer className="app-footer"><span>Small questions. Shared decisions.</span><span>Made for your community.</span></footer>}
+  </>;
 }
-
-export default App;
+export default function App() { return <BrowserRouter><Shell /></BrowserRouter>; }
