@@ -76,6 +76,10 @@ input:focus-visible {
   outline: 3px solid #8b5cf6;
   outline-offset: 4px;
 }
+/* Main receives focus after navigation and from the skip link, but is not a control. */
+main#main:focus {
+  outline: none;
+}
 button,
 input,
 a {
